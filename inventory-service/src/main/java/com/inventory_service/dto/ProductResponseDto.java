@@ -1,10 +1,23 @@
 package com.inventory_service.dto;
 
-import lombok.Data;
+import com.inventory_service.entity.Product;
 
-@Data
-public class ProductResponseDto {
-    private String title;
-    private Double price;
-    private Integer stock;
+public record ProductResponseDto(
+        Long id,
+        String title,
+        Double price,
+        Integer stockQuantity
+) {
+    // Instantiate a Record using the Entity's state
+    public static ProductResponseDto fromEntity(Product entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new ProductResponseDto(
+                entity.getId(),
+                entity.getTitle(),
+                entity.getPrice(),
+                entity.getStockQuantity()
+        );
+    }
 }

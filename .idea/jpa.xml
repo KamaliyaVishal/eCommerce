@@ -3,4 +3,13 @@
   <component name="JpaBuddyIdeaProjectConfig" newRepositoryParent="org.springframework.data.jpa.repository.JpaRepository">
     <option name="newEntityIdStrategy" value="Identity" />
   </component>
+  <component name="PersistenceUnitSettings">
+    <persistence-units>
+      <persistence-unit moduleName="order-service" name="Default">
+        <packages>
+          <package value="com.order_service" />
+        </packages>
+      </persistence-unit>
+    </persistence-units>
+  </component>
 </project>

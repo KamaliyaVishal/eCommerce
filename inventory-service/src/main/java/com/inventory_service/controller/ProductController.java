@@ -1,17 +1,13 @@
 package com.inventory_service.controller;
 
+import com.inventory_service.dto.ProductRequestDto;
 import com.inventory_service.dto.ProductResponseDto;
 import com.inventory_service.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.client.ServiceInstance;
-import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -22,17 +18,6 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
-    private final DiscoveryClient discoveryClient;
-    private final RestClient restClient;
-
-    @GetMapping("/test")
-    public String getOrder() {
-        ServiceInstance instanceInfo = discoveryClient.getInstances("order-service").getFirst();
-        return restClient.get()
-                .uri(instanceInfo.getUri()+"/order")
-                .retrieve()
-                .body(String.class);
-    }
 
     @GetMapping
     public ResponseEntity<List<ProductResponseDto>> getAllInventory() {
@@ -42,6 +27,11 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponseDto> getInventoryById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductById(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<ProductResponseDto> createProduct(@Valid @RequestBody ProductRequestDto request) {
+        return ResponseEntity.ok(productService.save(request));
     }
 
 }
