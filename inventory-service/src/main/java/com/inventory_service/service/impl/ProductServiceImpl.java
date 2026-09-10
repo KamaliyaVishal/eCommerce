@@ -8,6 +8,7 @@ import com.inventory_service.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -47,5 +48,34 @@ public class ProductServiceImpl implements ProductService {
 
         // 2. Convert database result back to explicit Response DTO using factory method
         return ProductResponseDto.fromEntity(savedProduct);
+    }
+
+    @Override
+    @Transactional
+    public Double deductStockAndGetPrice(Long productId, Integer quantity) {
+        log.info("Attempting to deduct stock for product ID: {}, quantity: {}", productId, quantity);
+
+        // 1. Fetch the product using the Pessimistic Lock
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found with ID: " + productId));
+
+        // 2. Validate sufficient inventory exists
+        if (product.getStockQuantity() < quantity) {
+            log.error("Insufficient stock for product: {}. Available: {}, Requested: {}",
+                    product.getTitle(), product.getStockQuantity(), quantity);
+
+            throw new RuntimeException("Insufficient stock for product: {}" + product.getTitle());
+        }
+
+        // 3. Deduct stock calculations
+        int updatedStock = product.getStockQuantity() - quantity;
+        product.setStockQuantity(updatedStock);
+
+        // 4. Save back the updated state
+        productRepository.save(product);
+        log.info("Successfully deducted stock. Updated stock for product '{}' is now: {}",
+                product.getTitle(), updatedStock);
+
+        return product.getPrice();
     }
 }

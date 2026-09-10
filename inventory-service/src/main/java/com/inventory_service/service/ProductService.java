@@ -13,4 +13,6 @@ public interface ProductService {
     ProductResponseDto getProductById(Long id);
 
     ProductResponseDto save(ProductRequestDto productRequestDto);
+
+    Double deductStockAndGetPrice(Long id, Integer quantity);
 }

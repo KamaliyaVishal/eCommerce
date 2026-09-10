@@ -14,7 +14,7 @@ import java.util.List;
 @RestController
 @Slf4j
 @RequiredArgsConstructor
-@RequestMapping
+@RequestMapping("/api/v1")
 public class ProductController {
 
     private final ProductService productService;
@@ -32,6 +32,11 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ProductResponseDto> createProduct(@Valid @RequestBody ProductRequestDto request) {
         return ResponseEntity.ok(productService.save(request));
+    }
+
+    @PutMapping("/{id}/reduce-stock")
+    Double reduceStock(@PathVariable("id") Long id, @RequestParam("quantity") Integer quantity) {
+        return productService.deductStockAndGetPrice(id, quantity);
     }
 
 }
