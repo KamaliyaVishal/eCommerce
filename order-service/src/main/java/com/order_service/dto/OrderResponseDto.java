@@ -6,7 +6,6 @@ import java.util.List;
 
 @Data
 public class OrderResponseDto {
-    private Long id;
-    private List<OrderItemRsponseDto> itemItems;
+    private List<OrderItemResponseDto> orderItems;
     private Double totalPrice;
 }

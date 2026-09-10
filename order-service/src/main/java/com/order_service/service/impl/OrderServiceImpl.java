@@ -24,13 +24,13 @@ public class OrderServiceImpl implements OrderService {
         log.info("Fetching the Orders");
         List<Order> orderList = orderRepository.findAll();
         return orderList.stream()
-                .map(order -> modelMapper.map(orderList, OrderResponseDto.class))
+                .map(order -> modelMapper.map(order, OrderResponseDto.class))
                 .toList();
     }
 
     @Override
     public OrderResponseDto getOrderByID(Long id) {
         log.info("Fetching the Order with Id: {}", id);
-        return modelMapper.map(orderRepository.findById(id).orElseThrow(() -> new RuntimeException("Order not found with ID: {}")), OrderResponseDto.class);
+        return modelMapper.map(orderRepository.findById(id).orElseThrow(() -> new RuntimeException("Order not found")), OrderResponseDto.class);
     }
 }
