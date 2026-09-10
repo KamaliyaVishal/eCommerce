@@ -10,6 +10,6 @@ import lombok.*;
 @Builder
 public class ProductResponseDto {
     private String title;
-    private Double pice;
+    private Double price;
     private Integer stock;
 }
