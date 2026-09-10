@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface ProductService {
 
-    List<ProductResponseDto> getAllInvetory();
+    List<ProductResponseDto> getAllInventory();
 
     ProductResponseDto getProductById(Long id);
 }

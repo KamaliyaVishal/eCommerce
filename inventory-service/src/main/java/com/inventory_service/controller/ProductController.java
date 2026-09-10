@@ -22,7 +22,7 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<List<ProductResponseDto>> getAllInventory() {
-        return ResponseEntity.ok(productService.getAllInvetory());
+        return ResponseEntity.ok(productService.getAllInventory());
     }
 
     @GetMapping("/{id}")

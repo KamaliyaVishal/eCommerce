@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-import repository.ProductRepository;
+import com.inventory_service.repository.ProductRepository;
 
 import java.util.List;
 
@@ -20,7 +20,7 @@ public class ProductServiceImpl implements ProductService {
     private final ModelMapper modelMapper;
 
     @Override
-    public List<ProductResponseDto> getAllInvetory() {
+    public List<ProductResponseDto> getAllInventory() {
         log.info("Fetching all inventory items");
         List<Product> productList = productRepository.findAll();
         return productList.stream()
