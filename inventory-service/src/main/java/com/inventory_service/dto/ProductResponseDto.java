@@ -1,13 +1,8 @@
 package com.inventory_service.dto;
 
-import jakarta.persistence.Entity;
-import lombok.*;
+import lombok.Data;
 
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
+@Data
 public class ProductResponseDto {
     private String title;
     private Double price;
