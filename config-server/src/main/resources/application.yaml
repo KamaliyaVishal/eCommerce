@@ -1,3 +1,17 @@
 spring:
   application:
     name: config-server
+  cloud.config.server.git:
+    uri: https://github.com/KamaliyaVishal/eCommerce-config-server
+    default-label: main
+    search-paths: 'config-files'
+    # If using a private repository, uncomment below:
+    # username: your-git-username
+    # password: your-git-token-or-password
+
+server:
+  port: 8888
+
+#Eureka Config
+eureka.client:
+  service-url.defaultZone: http://localhost:8761/eureka
