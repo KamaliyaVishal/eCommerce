@@ -2,7 +2,7 @@ spring:
   application:
     name: api-gateway
   cloud:
-    gateway.server.webmvc:
+    gateway.server.webflux:
       routes:
         # Route 1: order-service
         - id: order-service
