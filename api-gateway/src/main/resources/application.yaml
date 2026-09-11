@@ -9,6 +9,8 @@ spring:
           uri: lb://ORDER-SERVICE
           predicates:
             - Path=/order/**
+          filters:
+            - name: LoggingOrderFilter
 
         # Route 2: inventory-service
         - id: inventory-service
