@@ -1,4 +1,4 @@
-package com.order_service.config;
+package com.api_gateway.config;
 
 import feign.Capability;
 import feign.micrometer.MicrometerCapability;

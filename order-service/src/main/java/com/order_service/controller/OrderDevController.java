@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Data
 public class OrderDevController {
 
-    @Value("${devVariable}")
+    @Value("${devVariable:NotDevProfile}")
     private String devVariable;
 
     @GetMapping("/devVariable")
