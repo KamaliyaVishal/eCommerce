@@ -4,7 +4,7 @@ spring:
   cloud.config.server.git:
     uri: https://github.com/KamaliyaVishal/eCommerce-config-server
     default-label: main
-    search-paths: 'config-files'
+    # search-paths: 'config-files'
     # If using a private repository, uncomment below:
     # username: your-git-username
     # password: your-git-token-or-password
