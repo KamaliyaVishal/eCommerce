@@ -27,7 +27,7 @@ This project demonstrates a microservices-based approach to building an e-commer
 
 ```
                          ┌───────────────────┐
-                         │   Config Server    │
+                         │   Config Server   │
                          └─────────▲─────────┘
                                    │  fetches shared config
                                    │
@@ -54,6 +54,28 @@ Client ─▶│ API Gateway │──▶│  Discovery  │◀──│  Invent
 | `order-service` | Handles order creation, status, and order history. |
 
 > Update this table as services are added, renamed, or split further (e.g. user/auth service, payment service, notification service).
+
+### What each infrastructure service actually does
+
+**`config-server`**
+Every microservice needs settings — database URLs, credentials, feature flags, per-environment values (dev/staging/prod), etc. Instead of duplicating that configuration inside each service, the Config Server holds it centrally and hands it out on startup. This means:
+- One place to change a setting instead of editing five services
+- Different environments (dev/prod) can get different values without changing code
+- Services stay "dumb" about where their config comes from — they just ask the Config Server for it
+
+**`discovery-service`**
+In a microservices system, services need to call each other (e.g. `order-service` might need to check stock via `inventory-service`), but their network location (host/port) can change — especially if they're scaled up/down or redeployed. The Discovery Service (typically Eureka) solves this by acting as a phone book:
+- Every service registers itself here when it starts up ("Hi, I'm `inventory-service`, reach me at this address")
+- Other services ask the registry to find each other by name instead of hardcoding IPs/ports
+- If a service goes down or a new instance spins up, the registry reflects that automatically
+
+**`api-gateway`**
+This is the single front door for the entire system — external clients (a web app, mobile app, Postman, etc.) never talk to `inventory-service` or `order-service` directly. Instead they talk to the API Gateway, which:
+- Routes each incoming request to the correct downstream service based on the URL path
+- Can apply cross-cutting concerns in one place — authentication, rate limiting, logging, CORS — instead of repeating that logic in every service
+- Looks up service locations via the Discovery Service, so it always routes to a live instance
+
+Together, these three form the "plumbing" of the architecture: Config Server feeds settings, Discovery Service lets services find each other, and API Gateway is the single entry point that ties it all together for the outside world.
 
 ## Tech Stack
 
