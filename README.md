@@ -1,200 +1,118 @@
-# eCommerce — Microservices Platform
+# eCommerce Config Server
 
-A Spring Boot / Spring Cloud based e-commerce backend built with a microservices architecture. Each business capability (product inventory, orders, etc.) runs as its own independently deployable service, fronted by an API Gateway and coordinated through service discovery and centralized configuration.
+This repository is the **Git-backed configuration store** for the [eCommerce microservices project](https://github.com/KamaliyaVishal/eCommerce). It doesn't contain a running application itself — it holds the externalized `.yaml` configuration files that the Spring Cloud **Config Server** service reads from and serves to every other microservice at startup.
 
-## Table of Contents
+## What This Repo Is For
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Services](#services)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Getting Started](#getting-started)
-- [Running the Services](#running-the-services)
-- [Configuration](#configuration)
-- [API Gateway Routing](#api-gateway-routing)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+In a Spring Cloud microservices setup, services don't keep their configuration (ports, database URLs, routes, feature flags, etc.) hardcoded inside their own codebase. Instead:
 
-## Overview
+1. All configuration lives centrally, in this Git repository.
+2. The `config-server` application (a separate Spring Boot service) is pointed at this repo as its backing store.
+3. Each microservice (API Gateway, Order Service, Inventory Service, etc.) asks the Config Server for its configuration by name when it boots up.
+4. Because config is decoupled from code, settings can be changed and versioned here — through normal Git commits — without redeploying the service itself.
 
-This project demonstrates a microservices-based approach to building an e-commerce system, rather than a single monolithic application. Each service owns its own domain, can be built, deployed, and scaled independently, and communicates with the rest of the system through a discovery layer and a shared configuration server.
+## Configuration Files
 
-## Architecture
-
-```
-                         ┌───────────────────┐
-                         │   Config Server   │
-                         └─────────▲─────────┘
-                                   │  fetches shared config
-                                   │
-        ┌──────────────┐   ┌──────┴───────┐   ┌──────────────────┐
-Client ─▶│ API Gateway │──▶│  Discovery  │◀──│  Inventory /     │
-        │              │   │  Service     │──▶│  Order Services  │
-        └──────────────┘   │  (Eureka)    │   └──────────────────┘
-                           └──────────────┘
-```
-
-- **Config Server** centralizes configuration for every service so environment-specific settings live in one place instead of being duplicated.
-- **Discovery Service** acts as a service registry (Eureka-style), letting services find and call each other by name instead of hardcoded hosts/ports.
-- **API Gateway** is the single entry point for external clients, routing requests to the correct downstream service.
-- **Inventory Service** and **Order Service** are the business-logic microservices that own their respective domains and data.
-
-## Services
-
-| Service | Responsibility |
+| File | Used By |
 |---|---|
-| `config-server` | Serves centralized, environment-specific configuration to all other services. |
-| `discovery-service` | Service registry that all microservices register with, enabling dynamic service-to-service lookup. |
-| `api-gateway` | Single entry point for clients; routes and load-balances requests to the appropriate backend service. |
-| `inventory-service` | Manages product catalog and stock levels. |
-| `order-service` | Handles order creation, status, and order history. |
+| `application.yaml` | Shared/default configuration common to all services. |
+| `api-gateway.yaml` | Configuration specific to the `api-gateway` service (routes, ports, etc.). |
+| `inventory-service.yaml` | Configuration specific to the `inventory-service`. |
+| `order-service.yaml` | Configuration specific to the `order-service`. |
+| `order-service-dev.yaml` | Configuration overrides for the `order-service` when running under the `dev` Spring profile. |
 
-> Update this table as services are added, renamed, or split further (e.g. user/auth service, payment service, notification service).
+Spring Cloud Config resolves these using the convention `{service-name}-{profile}.yaml`, falling back to `{service-name}.yaml`, and finally to the shared `application.yaml` for anything not overridden.
 
-### What each infrastructure service actually does
+## How It's Used
 
-**`config-server`**
-Every microservice needs settings — database URLs, credentials, feature flags, per-environment values (dev/staging/prod), etc. Instead of duplicating that configuration inside each service, the Config Server holds it centrally and hands it out on startup. This means:
-- One place to change a setting instead of editing five services
-- Different environments (dev/prod) can get different values without changing code
-- Services stay "dumb" about where their config comes from — they just ask the Config Server for it
-
-**`discovery-service`**
-In a microservices system, services need to call each other (e.g. `order-service` might need to check stock via `inventory-service`), but their network location (host/port) can change — especially if they're scaled up/down or redeployed. The Discovery Service (typically Eureka) solves this by acting as a phone book:
-- Every service registers itself here when it starts up ("Hi, I'm `inventory-service`, reach me at this address")
-- Other services ask the registry to find each other by name instead of hardcoding IPs/ports
-- If a service goes down or a new instance spins up, the registry reflects that automatically
-
-**`api-gateway`**
-This is the single front door for the entire system — external clients (a web app, mobile app, Postman, etc.) never talk to `inventory-service` or `order-service` directly. Instead they talk to the API Gateway, which:
-- Routes each incoming request to the correct downstream service based on the URL path
-- Can apply cross-cutting concerns in one place — authentication, rate limiting, logging, CORS — instead of repeating that logic in every service
-- Looks up service locations via the Discovery Service, so it always routes to a live instance
-
-Together, these three form the "plumbing" of the architecture: Config Server feeds settings, Discovery Service lets services find each other, and API Gateway is the single entry point that ties it all together for the outside world.
-
-## Tech Stack
-
-- **Language:** Java
-- **Framework:** Spring Boot, Spring Cloud (Config, Gateway, Netflix Eureka)
-- **Build Tool:** Maven
-- **IDE:** IntelliJ IDEA (`.idea` project files included)
-
-> Adjust this list to match the exact versions/dependencies declared in each service's `pom.xml`.
-
-## Project Structure
+The Config Server service (in the main `eCommerce` repo's `config-server` module) is configured to treat this repository as its config source, typically via a `spring.cloud.config.server.git.uri` property pointing here. On startup, the Config Server clones/pulls this repo and exposes each file's contents over HTTP, e.g.:
 
 ```
-eCommerce/
-├── .idea/                 # IntelliJ project settings
-├── config-server/         # Centralized configuration service
-├── discovery-service/     # Eureka-based service registry
-├── api-gateway/           # Entry point / request routing
-├── inventory-service/     # Product & stock management
-├── order-service/         # Order processing
-└── README.md
+GET http://<config-server-host>:<port>/order-service/dev
+GET http://<config-server-host>:<port>/inventory-service/default
 ```
 
-## Prerequisites
+Each downstream microservice is configured with a `spring.config.import=configserver:` (or the older `bootstrap.yml` `spring.cloud.config.uri`) pointing at the running Config Server, so it automatically pulls the matching file from this repo at startup.
 
-- Java JDK 11+ (match whatever `java.version` is set in the service `pom.xml` files)
-- Maven 3.6+
-- An IDE such as IntelliJ IDEA (optional, project already includes `.idea` config)
-- A running database instance if any service persists data (e.g. MySQL/PostgreSQL) — update this once each service's `application.yml`/`application.properties` is finalized
+## Making Changes
 
-## Getting Started
-
-1. **Clone the repository**
+1. Clone this repo:
    ```bash
-   git clone https://github.com/KamaliyaVishal/eCommerce.git
-   cd eCommerce
+   git clone https://github.com/KamaliyaVishal/eCommerce-config-server.git
    ```
+2. Edit the relevant `.yaml` file for the service and environment you want to change.
+3. Commit and push.
+4. Restart (or trigger a refresh on) the Config Server / affected microservices so the new configuration is picked up.
 
-2. **Build all services**
-   ```bash
-   mvn clean install
-   ```
-   Or build each service individually from its own folder:
-   ```bash
-   cd config-server && mvn clean install && cd ..
-   cd discovery-service && mvn clean install && cd ..
-   cd api-gateway && mvn clean install && cd ..
-   cd inventory-service && mvn clean install && cd ..
-   cd order-service && mvn clean install && cd ..
-   ```
+> If Spring Cloud Bus / `/actuator/refresh` is set up, config changes can be picked up by running services without a restart — document that here if enabled.
 
-## Running the Services
+## Configuring the Main `eCommerce` Repo to Use This Config Store
 
-Services should be started in this order so that each one can register/fetch configuration correctly:
+The `config-server` module inside the [eCommerce](https://github.com/KamaliyaVishal/eCommerce) repo is the actual running Spring Boot application. It needs to be pointed at **this** repository as its Git backend so it knows where to pull configuration from.
 
-1. **Config Server** — provides configuration to everything else
-   ```bash
-   cd config-server && mvn spring-boot:run
-   ```
-2. **Discovery Service** — service registry
-   ```bash
-   cd discovery-service && mvn spring-boot:run
-   ```
-3. **API Gateway**
-   ```bash
-   cd api-gateway && mvn spring-boot:run
-   ```
-4. **Inventory Service**
-   ```bash
-   cd inventory-service && mvn spring-boot:run
-   ```
-5. **Order Service**
-   ```bash
-   cd order-service && mvn spring-boot:run
-   ```
+In the `config-server` module's `application.yaml` / `application.properties`, add:
 
-> Fill in the actual port numbers here once confirmed (e.g. Config Server `:8888`, Discovery Service `:8761`, API Gateway `:8080`, etc.), and add a Eureka dashboard link (typically `http://localhost:8761`) so it's easy to verify all services registered successfully.
+```yaml
+server:
+  port: 8888
 
-## Configuration
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/KamaliyaVishal/eCommerce-config-server
+          default-label: main
+          clone-on-start: true
+          # For a private repo, add credentials instead:
+          # username: <your-github-username>
+          # password: <personal-access-token>
 
-Shared and service-specific configuration is managed through the `config-server` module. Each service reads its properties from there on startup rather than bundling all settings locally. Document here:
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+```
 
-- Where the config repository/files live (local `config` folder, or a separate Git repo)
-- Any required environment variables or secrets (DB credentials, JWT secrets, etc.)
-- Active Spring profiles used (`dev`, `prod`, etc.)
+- `spring.cloud.config.server.git.uri` — points at this repo, so it becomes the single source of truth for configuration.
+- `default-label` — the branch to pull from (`main`).
+- `clone-on-start` — clones this repo locally as soon as the Config Server boots, instead of waiting for the first request.
 
-## API Gateway Routing
+### How the Other Services Connect Back
 
-The `api-gateway` is the single entry point for all client requests and forwards them to the correct downstream service by name via the discovery service. Document the actual route mappings here, for example:
+Each downstream service in the main `eCommerce` repo (`api-gateway`, `inventory-service`, `order-service`) then points at the running Config Server itself, e.g. in `application.yaml` or `bootstrap.yaml`:
 
-| Path | Routed To |
-|---|---|
-| `/inventory/**` | `inventory-service` |
-| `/orders/**` | `order-service` |
+```yaml
+spring:
+  config:
+    import: "configserver:http://localhost:8888"
+  application:
+    name: order-service   # must match the file name in this repo, e.g. order-service.yaml
+  profiles:
+    active: dev            # resolves to order-service-dev.yaml here
+```
 
-## Roadmap
+That `spring.application.name` value is what maps a service to its file in this repository (`order-service` → `order-service.yaml`, then `order-service-dev.yaml` if the `dev` profile is active), and `spring.config.import` is what tells the service to fetch its settings from the Config Server rather than its own local file.
 
-Ideas for extending the platform:
+### Startup Order
 
-- [ ] User / authentication service (JWT-based login & registration)
-- [ ] Payment service integration
-- [ ] Cart / checkout service
-- [ ] Notification service (email/SMS on order updates)
-- [ ] Centralized logging & monitoring (e.g. ELK stack, Prometheus/Grafana)
-- [ ] Dockerize each service and add a `docker-compose.yml` for one-command startup
-- [ ] CI/CD pipeline (GitHub Actions)
+Because every other service depends on the Config Server being reachable, the recommended startup order across both repos is:
 
-## Contributing
+1. `config-server` (from the main `eCommerce` repo) — pulls its configuration source from **this** repo
+2. `discovery-service`
+3. `api-gateway`
+4. `inventory-service`
+5. `order-service`
 
-Contributions are welcome. To contribute:
+## Related Repositories
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes
-4. Push to your branch and open a Pull Request
+- [eCommerce](https://github.com/KamaliyaVishal/eCommerce) — main project, including the `config-server`, `discovery-service`, `api-gateway`, `inventory-service`, and `order-service` modules.
 
 ## License
 
-Specify your chosen license here (e.g. MIT, Apache 2.0). If unsure, [choosealicense.com](https://choosealicense.com/) can help pick one, and a `LICENSE` file should be added to the repo root.
+Specify your chosen license here (e.g. MIT, Apache 2.0).
 
 ## Contact
 
