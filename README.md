@@ -32,10 +32,10 @@ This project demonstrates a microservices-based approach to building an e-commer
                                    │  fetches shared config
                                    │
         ┌──────────────┐   ┌──────┴───────┐   ┌──────────────────┐
-Client ─▶│ API Gateway  │──▶│  Discovery   │◀──│  Inventory /      │
-        │              │   │  Service      │──▶│  Order Services   │
-        └──────────────┘   │  (Eureka)     │   └──────────────────┘
-                            └──────────────┘
+Client ─▶│ API Gateway │──▶│  Discovery  │◀──│  Inventory /     │
+        │              │   │  Service     │──▶│  Order Services  │
+        └──────────────┘   │  (Eureka)    │   └──────────────────┘
+                           └──────────────┘
 ```
 
 - **Config Server** centralizes configuration for every service so environment-specific settings live in one place instead of being duplicated.
